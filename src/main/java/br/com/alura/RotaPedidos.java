@@ -39,9 +39,10 @@ public class RotaPedidos {
                         to("http4://localhost:8080/webservices/ebook/item");
                 from("direct:soap").
                         routeId("rota-soap").
-                        setBody(constant("<envelope>teste</envelope>")).
+                        to("xslt:pedido-para-soap.xslt").
                         log("${id} - ${body}").
-                        to("mock:soap");
+                        setHeader(Exchange.CONTENT_TYPE, constant("text/xml")).
+                        to("http4://localhost:8080/webservices/financeiro");
             }
         });
 
