@@ -18,18 +18,30 @@ public class RotaPedidos {
             public void configure() throws Exception {
 
                 from("file:pedidos?delay=5s&noop=true").
+                        routeId("rota-pedidos").
+                        multicast().
+                        to("direct:soap").
+                        to("direct:http");
+
+                from("direct:http").
+                        routeId("rota-http").
                         setProperty("pedidoId", xpath("/pedido/id/text()")).
                         setProperty("clienteId", xpath("/pedido/pagamento/email-titular/text()")).
                         split().
-                            xpath("/pedido/itens/item").
+                        xpath("/pedido/itens/item").
                         filter().
-                            xpath("/item/formato[text()='EBOOK']").
+                        xpath("/item/formato[text()='EBOOK']").
                         setProperty("ebookId", xpath("/item/livro/codigo/text()")).
                         marshal().xmljson().
                         log("${id} - ${body}").
                         setHeader(Exchange.HTTP_METHOD, HttpMethods.GET).
                         setHeader(Exchange.HTTP_QUERY, simple("ebookId=${property.ebookId}&pedidoId=${property.pedidoId}&clienteId=${property.clienteId}")).
-                to("http4://localhost:8080/webservices/ebook/item");
+                        to("http4://localhost:8080/webservices/ebook/item");
+                from("direct:soap").
+                        routeId("rota-soap").
+                        setBody(constant("<envelope>teste</envelope>")).
+                        log("${id} - ${body}").
+                        to("mock:soap");
             }
         });
 
